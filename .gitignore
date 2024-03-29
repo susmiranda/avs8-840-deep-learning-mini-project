@@ -83,6 +83,11 @@ profile_default/
 ipython_config.py
 
 CoughVid/
+valid_dataset/
+valid_dataset.zip
+outputs/
+final_model.pth
+testmodel.ckpt
 
 # pyenv
 #   For a library or package, you might want to ignore these files since the code is
@@ -166,3 +171,6 @@ dataset/
 tests/
 outputs/
 lightning_logs/
+.vscode/
+checkpoints/
+temp/

@@ -259,6 +259,94 @@ class KWT(nn.Module):
             outputs = outputs + (attentions, ) if output_attentions else outputs
             return outputs
         return self.mlp_head(x)
+    
+class KWT_extrafeats(nn.Module):
+    """
+    KWT model
+    """
+    def __init__(self, input_res, patch_res, num_classes, dim, depth, heads, mlp_dim, pool='cls', channels=1,
+                 dim_head=64, dropout=0., emb_dropout=0., pre_norm=True, **kwargs):
+        """
+        Initialises KWT model
+        :param input_res: input spectrogram size
+        :param patch_res: patch size
+        :param num_classes: number of keyword classes
+        :param dim: transformer dimension
+        :param depth: number of transformer layers
+        :param heads: number of attention heads
+        :param mlp_dim: MLP dimension
+        :param pool: specifies whether CLS token or average pooling of transformer model is used for classification
+        :param channels: Number of input channels
+        :param dim_head: dimension of attention heads
+        :param dropout: dropout of transformer attention and feed forward layers
+        :param emb_dropout: dropout of embeddings
+        :param pre_norm: specifies whether PreNorm (True) or PostNorm (False) is used
+        :param kwargs: Keyword arguments
+        """
+        super().__init__()
+
+        num_patches = int(input_res[0] / patch_res[0] * input_res[1] / patch_res[1])
+
+        patch_dim = channels * patch_res[0] * patch_res[1]
+        assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
+
+        self.to_patch_embedding = nn.Sequential(
+            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1=patch_res[0], p2=patch_res[1]),
+            nn.Linear(patch_dim, dim),
+        )
+
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
+        self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.dropout = nn.Dropout(emb_dropout)
+        self.mask_embedding = nn.Parameter(torch.FloatTensor(dim).uniform_())
+        self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, pre_norm, dropout)
+
+        self.pool = pool
+        self.to_latent = nn.Identity()
+
+        # Create classification head
+        self.mlp_head = nn.Sequential(
+            nn.LayerNorm(dim+5),
+            nn.Linear(dim+5, num_classes)
+        )
+
+    def forward(self, x, feats, mask=None, output_hidden_states=False, output_attentions=False):
+        """
+        Forward method of KWT model
+        :param x: input tensor
+        :param mask: input mask
+        :param output_hidden_states: specifies whether hidden states are output
+        :param output_attentions: specifies whether attentions are output
+        :return: KWT model output, if output_hidden_states and/or output_attentions the classification head is skipped
+        """
+       
+        x = self.to_patch_embedding(x)
+        b, n, _ = x.shape
+
+        # Add cls token embedding
+        cls_tokens = repeat(self.cls_token, '() n d -> b n d', b=b)
+        x = torch.cat((cls_tokens, x), dim=1)
+
+        # Mask input
+        if mask is not None:
+            x[mask] = self.mask_embedding
+
+        x += self.pos_embedding[:, :(n + 1)]
+        x = self.dropout(x)
+        
+
+        x, hidden_states, attentions = self.transformer(x)
+        x = x.mean(dim=1) if self.pool == 'mean' else x[:, 0]
+
+        x = self.to_latent(x)
+
+        if any([output_hidden_states, output_attentions]):
+            outputs = (self.mlp_head(x), hidden_states) if output_hidden_states else (self.mlp_head(x), )
+            outputs = outputs + (attentions, ) if output_attentions else outputs
+            return outputs
+        x = torch.cat((x, feats),dim=1)
+
+        return self.mlp_head(x)
 
 
 def kwt_from_name(model_name: str):

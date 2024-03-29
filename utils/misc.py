@@ -6,7 +6,7 @@ import numpy as np
 import random
 import os
 import wandb
-from KWT import KWT, kwt_from_name
+from src.models.KWT import KWT, kwt_from_name
 
 
 def seed_everything(seed: str) -> None:
@@ -60,7 +60,7 @@ def log(log_dict: dict, step: int, config: dict) -> None:
         step (int): Current step.
         config (dict): Config dict.
     """
-    """"
+    
     # send logs to wandb tracking server
     if config["exp"]["wandb"]:
         wandb.log(log_dict, step=step)
@@ -77,7 +77,7 @@ def log(log_dict: dict, step: int, config: dict) -> None:
     # show logs in stdout
     if config["exp"]["log_to_stdout"]:
         print(log_message)
-"""
+
 
 def get_model(model_config: dict) -> nn.Module:
     """Creates model from config dict.
@@ -125,4 +125,6 @@ def save_model(epoch: int, val_acc: float, save_path: str, net: nn.Module, optim
     if log_file is not None:
         with open(log_file, "a+") as f:
             f.write(log_message + "\n")
+
+
     
