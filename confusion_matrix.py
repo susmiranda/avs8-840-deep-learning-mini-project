@@ -87,7 +87,7 @@ def test_pipeline(config):
     recall_per_class = []
 
     
-    # finding precision adn recall for each class with sklearn 
+    # finding precision and recall for each class with sklearn 
     for i in range(len(classes)):
         precision = precision_score(true_labels == i, predicted_labels == i)
         recall = recall_score(true_labels == i, predicted_labels == i)
@@ -134,14 +134,13 @@ def test_pipeline(config):
     ROC_curve_fig = plt.figure(figsize=(12, 7))
     #for multi-class classification, it is necessary to binarize the output. One ROC curve can be drawn per label.
     for i in range(len(classes)):
-        fpr, tpr, _ = roc_curve(true_labels == i, predicted_labels == i)
-        roc_auc = auc(fpr, tpr)
+        fpr, tpr, _ = roc_curve(true_labels == i, predicted_labels == i) #fpr = false positive rate, tpr = true positive rate
+        roc_auc = auc(fpr, tpr) #auc = area under curve
         class_name = list(classes.keys())[list(classes.values()).index(i)]
         plt.plot(fpr, tpr, lw=2, label='ROC curve for {} (AUC = {:.2f})'.format(class_name, roc_auc))
 
 
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-    #ROC_fig = plt.figure(figsize = (12,7))
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive (FP) Rate')
@@ -161,11 +160,11 @@ def test_pipeline(config):
     #AUC = 0.5: Random classifier. It indicates that the model has no discrimination ability better than random guessing. The ROC curve coincides with the diagonal line (the line of no-discrimination).
     #AUC < 0.5: Worse than random classifier. It suggests that the model's predictions are inversely related to the true labels, indicating a model with poor performance.
 
-    #logging to    #logging confusion matrix, precision-recall curve, ROC-curve to wandb
+    #logging confusion matrix to wandb
     wandb.log({'confusion_matrix.png' : wandb.Image(confusion_matrix_fig)}) 
-    # Logging precision-recall curve figure
+    # Logging precision-recall curve figure to wandb
     wandb.log({'precision_recall_curve.png': wandb.Image(precision_recall_fig)})
-    # Logging ROC curve figure
+    # Logging ROC curve figure to wandb
     wandb.log({'ROC_curve.png': wandb.Image(ROC_curve_fig)})
 
 

@@ -52,6 +52,7 @@ def training_pipeline(config):
 
     # Make dataset
     train_set = SpectrogramDataset(config['tr_manifest_path'], config['labels_map'], config['audio_config'])
+    #train_set = SpectrogramDataset(config['tr_manifest_path'], config['labels_map'], config['audio_config'],augment=True)
     val_set = SpectrogramDataset(config['val_manifest_path'], config['labels_map'], config['audio_config'])
     test_set = SpectrogramDataset(config['eval_manifest_path'],config['labels_map'],config['audio_config'])
 
